@@ -1,8 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using OBSSystem.Infrastructure.Configurations;
+using OBSSystem.Infrastructure.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using OBSSystem.Application.Interfaces;
+using OBSSystem.Application.Services;
+using OBSSystem.API.Middleware;
+using OBSSystem.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +34,11 @@ builder.Services.AddAuthorization();
 builder.Services.AddDbContext<OBSContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Register PasswordHasher
+// Register PasswordHasher (Non-static class)
+builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>(); // BCrypt tabanlý þifreleme servisi
+                                                                     
+
 // Add Controllers with JSON Options
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -39,6 +49,8 @@ builder.Services.AddControllers()
 // Add OpenAPI (Swagger)
 builder.Services.AddOpenApi();
 
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 
 var app = builder.Build();
@@ -47,9 +59,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<OBSContext>();
-    
-  
-        context.Database.Migrate(); // Ensure database is up-to-date
+    context.Database.Migrate(); // Ensure database is up-to-date
     DbInitializer.Seed(context); // Seed initial data
 }
 
@@ -59,11 +69,18 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// app.UseHttpsRedirection(); Uncomment this if HTTPS is required
-app.UseAuthentication(); // Authentication Middleware
-app.UseAuthorization();  // Authorization Middleware
+// Uncomment this if HTTPS is required
+// app.UseHttpsRedirection(); 
+
+// Authentication Middleware
+app.UseAuthentication();
+
+// Authorization Middleware
+app.UseAuthorization();
 
 // Map Controllers
 app.MapControllers();
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.Run();

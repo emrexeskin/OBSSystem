@@ -1,4 +1,4 @@
-﻿namespace OBSSystem.Application.DTOs
+﻿namespace OBSSystem.Application.DTOs.Course
 {
     public class CreateCourseDto
     {

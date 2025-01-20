@@ -1,79 +1,85 @@
-﻿using OBSSystem.Core.Entities;
-using OBSSystem.Infrastructure.Configurations;
-using OBSSystem.API.DTOs;
-using OBSSystem.Application.DTOs.Create;
+﻿using OBSSystem.Application.Exceptions;
+using OBSSystem.Application.Interfaces;
+using OBSSystem.Application.Validators;
+using OBSSystem.Core.Entities;
 
-public class UserService
+namespace OBSSystem.Application.Services
 {
-    private readonly OBSContext _context;
-
-    public UserService(OBSContext context)
+    public class UserService
     {
-        _context = context;
-    }
+        private readonly IUserRepository _userRepository;
+        private readonly IPasswordHasher _passwordHasher;
 
-    public User CreateAdmin(CreateAdminDto adminDto)
-    {
-        if (_context.Users.Any(u => u.Email == adminDto.Email))
+        public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher)
         {
-            throw new InvalidOperationException("A user with the same email already exists.");
+            _userRepository = userRepository;
+            _passwordHasher = passwordHasher;
         }
 
-        var admin = new User
+        public IEnumerable<User> GetAllUsers()
         {
-            Name = adminDto.Name,
-            Email = adminDto.Email,
-            Password = PasswordHasher.HashPassword(adminDto.Password),
-            Role = "Admin"
-        };
-
-        _context.Users.Add(admin);
-        _context.SaveChanges();
-
-        return admin;
-    }
-
-    public Teacher CreateTeacher(CreateTeacherDto teacherDto)
-    {
-        if (_context.Users.Any(u => u.Email == teacherDto.Email))
-        {
-            throw new InvalidOperationException("A user with the same email already exists.");
+            return _userRepository.GetAllUsers();
         }
 
-        var teacher = new Teacher
+        public User GetUserById(int id)
         {
-            Name = teacherDto.Name,
-            Email = teacherDto.Email,
-            Password = PasswordHasher.HashPassword(teacherDto.Password),
-            Role = "Teacher",
-            Department = teacherDto.Department
-        };
-
-        _context.Users.Add(teacher);
-        _context.SaveChanges();
-
-        return teacher;
-    }
-
-    public Student CreateStudent(CreateStudentDto studentDto)
-    {
-        if (_context.Users.Any(u => u.Email == studentDto.Email))
-        {
-            throw new InvalidOperationException("A user with the same email already exists.");
+            var user = _userRepository.GetUserById(id);
+            if (user == null)
+                throw new UserNotFoundException($"User with ID {id} not found.");
+            return user;
         }
 
-        var student = new Student
+        public void CreateUser(User user)
         {
-            Name = studentDto.Name,
-            Email = studentDto.Email,
-            Password = PasswordHasher.HashPassword(studentDto.Password),
-            Role = "Student",
-            GradeLevel = studentDto.GradeLevel
-        };
+            if (_userRepository.IsEmailTaken(user.Email))
+                throw new EmailAlreadyTakenException($"Email '{user.Email}' is already in use.");
 
-        _context.Users.Add(student);
-        _context.SaveChanges();
+            // Şifre politikası doğrulaması
+            var passwordErrors = PasswordPolicyValidator.ValidatePassword(user.Password);
+            if (passwordErrors.Count > 0)
+                throw new PasswordPolicyException(passwordErrors);
 
-        return student;
+            // Şifreyi hashle
+            user.Password = _passwordHasher.HashPassword(user.Password);
+
+            // Kullanıcıyı oluştur
+            _userRepository.CreateUser(user);
+        }
+
+        public void UpdateUser(int id, User updatedUser)
+        {
+            var existingUser = _userRepository.GetUserById(id);
+            if (existingUser == null)
+                throw new UserNotFoundException($"User with ID {id} not found.");
+
+            if (_userRepository.IsEmailTaken(updatedUser.Email, id))
+                throw new EmailAlreadyTakenException($"Email '{updatedUser.Email}' is already in use.");
+
+            // Şifre değişikliği varsa politikayı kontrol et
+            if (!_passwordHasher.VerifyPassword(existingUser.Password, updatedUser.Password))
+            {
+                var passwordErrors = PasswordPolicyValidator.ValidatePassword(updatedUser.Password);
+                if (passwordErrors.Count > 0)
+                    throw new PasswordPolicyException(passwordErrors);
+
+                updatedUser.Password = _passwordHasher.HashPassword(updatedUser.Password);
+            }
+
+            // Diğer alanları güncelle
+            existingUser.Name = updatedUser.Name;
+            existingUser.Email = updatedUser.Email;
+            existingUser.Role = updatedUser.Role;
+
+            _userRepository.UpdateUser(existingUser);
+        }
+
+        public void DeleteUser(int id)
+        {
+            var existingUser = _userRepository.GetUserById(id);
+            if (existingUser == null)
+                throw new UserNotFoundException($"User with ID {id} not found.");
+
+            _userRepository.DeleteUser(id);
+        }
     }
 }

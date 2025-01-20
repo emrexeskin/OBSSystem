@@ -1,4 +1,4 @@
-﻿namespace OBSSystem.API.DTOs
+﻿namespace OBSSystem.Application.DTOs.Course
 {
     public class CourseDto
     {

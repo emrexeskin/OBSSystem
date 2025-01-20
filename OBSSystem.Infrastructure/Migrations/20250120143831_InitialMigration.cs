@@ -28,6 +28,20 @@ namespace OBSSystem.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Departments",
+                columns: table => new
+                {
+                    DepartmentID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DepartmentName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Faculty = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Departments", x => x.DepartmentID);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -39,11 +53,18 @@ namespace OBSSystem.Infrastructure.Migrations
                     Role = table.Column<string>(type: "nvarchar(8)", maxLength: 8, nullable: false),
                     AdminID = table.Column<int>(type: "int", nullable: true),
                     EnrollmentYear = table.Column<int>(type: "int", nullable: true),
+                    DepartmentID = table.Column<int>(type: "int", nullable: true),
                     Department = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.UserID);
+                    table.ForeignKey(
+                        name: "FK_Users_Departments_DepartmentID",
+                        column: x => x.DepartmentID,
+                        principalTable: "Departments",
+                        principalColumn: "DepartmentID",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -146,6 +167,11 @@ namespace OBSSystem.Infrastructure.Migrations
                 name: "IX_Grades_StudentID",
                 table: "Grades",
                 column: "StudentID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_DepartmentID",
+                table: "Users",
+                column: "DepartmentID");
         }
 
         /// <inheritdoc />
@@ -165,6 +191,9 @@ namespace OBSSystem.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Users");
+
+            migrationBuilder.DropTable(
+                name: "Departments");
         }
     }
 }

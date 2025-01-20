@@ -13,5 +13,7 @@ namespace OBSSystem.API.Controllers
         {
             return Ok(new { message = "Student can view grades!" });
         }
+
+
     }
 }

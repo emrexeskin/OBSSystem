@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OBSSystem.API.DTOs;
-using OBSSystem.Application.DTOs;
+using OBSSystem.Application.DTOs.Course;
 using OBSSystem.Core.Entities;
 using OBSSystem.Infrastructure.Configurations;
 

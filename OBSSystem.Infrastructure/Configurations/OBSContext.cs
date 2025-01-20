@@ -15,7 +15,7 @@ namespace OBSSystem.Infrastructure.Configurations
         public DbSet<Grade> Grades { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<Announcement> Announcements { get; set; }
-
+        public DbSet<Department> Departments { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -64,6 +64,15 @@ namespace OBSSystem.Infrastructure.Configurations
                 .WithMany()
                 .HasForeignKey(g => g.CourseID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Öğrenci-Bölüm İlişkisi
+            modelBuilder.Entity<Student>()
+                .HasOne(s => s.Department)
+                .WithMany(d => d.Students)
+                .HasForeignKey(s => s.DepartmentID)
+                .OnDelete(DeleteBehavior.Restrict); // Bölüm silindiğinde öğrenciler etkilenmez
+
+
         }
 
     }

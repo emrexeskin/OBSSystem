@@ -12,7 +12,7 @@ using OBSSystem.Infrastructure.Configurations;
 namespace OBSSystem.Infrastructure.Migrations
 {
     [DbContext(typeof(OBSContext))]
-    [Migration("20250120110602_InitialMigration")]
+    [Migration("20250120143831_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -107,6 +107,27 @@ namespace OBSSystem.Infrastructure.Migrations
                     b.ToTable("Courses");
                 });
 
+            modelBuilder.Entity("OBSSystem.Core.Entities.Department", b =>
+                {
+                    b.Property<int>("DepartmentID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DepartmentID"));
+
+                    b.Property<string>("DepartmentName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Faculty")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("DepartmentID");
+
+                    b.ToTable("Departments");
+                });
+
             modelBuilder.Entity("OBSSystem.Core.Entities.Grade", b =>
                 {
                     b.Property<int>("GradeID")
@@ -181,8 +202,13 @@ namespace OBSSystem.Infrastructure.Migrations
                 {
                     b.HasBaseType("OBSSystem.Core.Entities.User");
 
+                    b.Property<int>("DepartmentID")
+                        .HasColumnType("int");
+
                     b.Property<int>("EnrollmentYear")
                         .HasColumnType("int");
+
+                    b.HasIndex("DepartmentID");
 
                     b.HasDiscriminator().HasValue("Student");
                 });
@@ -245,6 +271,22 @@ namespace OBSSystem.Infrastructure.Migrations
                     b.Navigation("Course");
 
                     b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("OBSSystem.Core.Entities.Student", b =>
+                {
+                    b.HasOne("OBSSystem.Core.Entities.Department", "Department")
+                        .WithMany("Students")
+                        .HasForeignKey("DepartmentID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("OBSSystem.Core.Entities.Department", b =>
+                {
+                    b.Navigation("Students");
                 });
 
             modelBuilder.Entity("OBSSystem.Core.Entities.Student", b =>

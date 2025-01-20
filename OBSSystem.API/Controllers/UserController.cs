@@ -1,114 +1,65 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using OBSSystem.Application.Exceptions;
+using OBSSystem.Application.Services;
 using OBSSystem.Core.Entities;
-using OBSSystem.Infrastructure.Configurations;
-using OBSSystem.Infrastructure.Helpers;
 
 namespace OBSSystem.API.Controllers
 {
-    [Authorize(Roles = "Admin")] // Sadece Admin yetkisi olanlar bu endpointlere erişebilir
+    [Authorize(Roles = "Admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly OBSContext _context;
+        private readonly UserService _userService;
 
-        public UserController(OBSContext context)
+        public UserController(UserService userService)
         {
-            _context = context;
+            _userService = userService;
         }
 
-        // Kullanıcıları listeleme
         [HttpGet]
         public IActionResult GetAllUsers()
         {
-            var users = _context.Users.ToList();
+            var users = _userService.GetAllUsers();
             return Ok(users);
         }
 
-        // Kullanıcı detaylarını görüntüleme
         [HttpGet("{id}")]
         public IActionResult GetUserById(int id)
         {
-            var user = _context.Users.Find(id);
-            if (user == null)
+            try
             {
-                return NotFound(new { message = "User not found" });
+                var user = _userService.GetUserById(id);
+                return Ok(user);
             }
-
-            return Ok(user);
+            catch (UserNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
-        // Yeni kullanıcı ekleme
         [HttpPost]
         public IActionResult CreateUser([FromBody] User newUser)
         {
-            if (newUser == null)
+            try
             {
-                return BadRequest(new { message = "Invalid user data" });
+                _userService.CreateUser(newUser);
+                return CreatedAtAction(nameof(GetUserById), new { id = newUser.UserID }, newUser);
             }
-
-            // Aynı email ile bir kullanıcı zaten var mı?
-            if (_context.Users.Any(u => u.Email == newUser.Email))
+            catch (PasswordPolicyException ex)
             {
-                return Conflict(new { message = "A user with the same email already exists." });
+                return BadRequest(new { message = ex.Message, errors = ex.Errors });
             }
-
-            // Şifreyi hashleyerek kaydet
-            newUser.Password = PasswordHasher.HashPassword(newUser.Password);
-
-
-            _context.Users.Add(newUser);
-            _context.SaveChanges();
-
-            return CreatedAtAction(nameof(GetUserById), new { id = newUser.UserID }, newUser);
+            catch (EmailAlreadyTakenException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
-        // Kullanıcı güncelleme
-        [HttpPut("{id}")]
-        public IActionResult UpdateUser(int id, [FromBody] User updatedUser)
-        {
-            var user = _context.Users.Find(id);
-            if (user == null)
-            {
-                return NotFound(new { message = "User not found" });
-            }
-
-            // Email alanını güncellerken aynı emailden başka kullanıcı var mı kontrolü
-            if (_context.Users.Any(u => u.Email == updatedUser.Email && u.UserID != id))
-            {
-                return Conflict(new { message = "A user with the same email already exists." });
-            }
-
-            user.Name = updatedUser.Name;
-            user.Email = updatedUser.Email;
-
-            // Şifre hashlenmiş olarak güncellenir
-            user.Password = PasswordHasher.HashPassword(updatedUser.Password);
-
-
-            user.Role = updatedUser.Role;
-
-            _context.SaveChanges();
-
-            return Ok(user);
-        }
-
-        // Kullanıcı silme
-        [HttpDelete("{id}")]
-        public IActionResult DeleteUser(int id)
-        {
-            var user = _context.Users.Find(id);
-            if (user == null)
-            {
-                return NotFound(new { message = "User not found" });
-            }
-
-            _context.Users.Remove(user);
-            _context.SaveChanges();
-
-            return NoContent();
-        }
     }
 }

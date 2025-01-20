@@ -6,8 +6,7 @@ using OBSSystem.Infrastructure.Configurations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using OBSSystem.Infrastructure.Helpers; // Doğru PasswordHasher sınıfı için
-
+using OBSSystem.Application.Interfaces;
 
 namespace OBSSystem.API.Controllers
 {
@@ -17,11 +16,13 @@ namespace OBSSystem.API.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly OBSContext _context;
+        private readonly IPasswordHasher _passwordHasher;
 
-        public AuthController(IConfiguration configuration, OBSContext context)
+        public AuthController(IConfiguration configuration, OBSContext context, IPasswordHasher passwordHasher)
         {
             _configuration = configuration;
             _context = context;
+            _passwordHasher = passwordHasher;
         }
 
         [HttpPost("login")]
@@ -30,8 +31,8 @@ namespace OBSSystem.API.Controllers
             // Veritabanından kullanıcıyı email ile kontrol et
             var user = _context.Users.SingleOrDefault(u => u.Email == request.Email);
 
-            if (user == null || !PasswordHasher.VerifyPassword(user.Password, request.Password))
-
+            // Kullanıcı doğrulama
+            if (user == null || !_passwordHasher.VerifyPassword(user.Password, request.Password))
             {
                 return Unauthorized(new { message = "Invalid credentials" });
             }
