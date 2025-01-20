@@ -1,0 +1,6 @@
+@OBSSystem.API_HostAddress = http://localhost:5190
+
+GET {{OBSSystem.API_HostAddress}}
+Accept: application/json
+
+###

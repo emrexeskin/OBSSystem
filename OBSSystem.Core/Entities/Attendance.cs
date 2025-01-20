@@ -1,0 +1,23 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace OBSSystem.Core.Entities
+{
+    public class Attendance
+    {
+        public int AttendanceID { get; set; }
+        public int StudentID { get; set; }
+        public int CourseID { get; set; }
+        public bool Status { get; set; } // True = Present, False = Absent
+        public DateTime Date { get; set; }
+
+        // Navigation Properties
+        public Student Student { get; set; }
+        public Course Course { get; set; }
+    }
+
+}
+
