@@ -1,169 +1,80 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OBSSystem.API.DTOs;
 using OBSSystem.Application.DTOs.Course;
-using OBSSystem.Core.Entities;
-using OBSSystem.Infrastructure.Configurations;
-
+using OBSSystem.Application.Services;
 
 namespace OBSSystem.API.Controllers
-
-
 {
-
-
-    public class CourseRequest
-    {
-        public string CourseName { get; set; }
-        public int TeacherID { get; set; }
-        public string Schedule { get; set; }
-    }
-
-
-    [Authorize(Roles = "Admin")] // Only Admin can manage courses
+    [Authorize(Roles = "Admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class CourseController : ControllerBase
     {
-        private readonly OBSContext _context;
+        private readonly CourseService _courseService;
 
-        public CourseController(OBSContext context)
+        public CourseController(CourseService courseService)
         {
-            _context = context;
+            _courseService = courseService;
         }
 
         [HttpPost]
         public IActionResult CreateCourse([FromBody] CreateCourseDto courseDto)
         {
-            if (courseDto == null)
+            try
             {
-                return BadRequest(new { message = "Invalid course data" });
+                var createdCourse = _courseService.CreateCourse(courseDto);
+                return CreatedAtAction(nameof(GetCourseById), new { id = createdCourse.CourseID }, createdCourse);
             }
-
-            // Verify the teacher exists and has the Teacher role
-            var teacher = _context.Users.OfType<Teacher>().SingleOrDefault(t => t.UserID == courseDto.TeacherID);
-            if (teacher == null)
+            catch (Exception ex)
             {
-                return BadRequest(new { message = "Invalid teacher ID" });
+                return BadRequest(new { message = ex.Message });
             }
-
-            // Map DTO to Entity
-            var course = new Course
-            {
-                CourseName = courseDto.CourseName,
-                TeacherID = courseDto.TeacherID,
-                Schedule = courseDto.Schedule
-            };
-
-            _context.Courses.Add(course);
-            _context.SaveChanges();
-
-            return CreatedAtAction(nameof(GetCourseById), new { id = course.CourseID }, new
-            {
-                course.CourseID,
-                course.CourseName,
-                course.TeacherID,
-                TeacherName = teacher.Name, // Bu alan sadece döndürülecek
-                course.Schedule
-            });
         }
 
         [HttpGet]
         public IActionResult GetAllCourses()
         {
-            var courses = _context.Courses.Include(c => c.Teacher).ToList();
-
-            var courseDtos = courses.Select(c => new CourseDto
-            {
-                CourseID = c.CourseID,
-                CourseName = c.CourseName,
-                TeacherID = c.TeacherID,
-                TeacherName = c.Teacher?.Name,
-                Schedule = c.Schedule
-            }).ToList();
-
-            return Ok(courseDtos);
+            var courses = _courseService.GetAllCourses();
+            return Ok(courses);
         }
 
         [HttpGet("{id}")]
         public IActionResult GetCourseById(int id)
         {
-            var course = _context.Courses.Include(c => c.Teacher).SingleOrDefault(c => c.CourseID == id);
+            var course = _courseService.GetCourseById(id);
             if (course == null)
             {
                 return NotFound(new { message = "Course not found" });
             }
-
-            var courseDto = new CourseDto
-            {
-                CourseID = course.CourseID,
-                CourseName = course.CourseName,
-                TeacherID = course.TeacherID,
-                TeacherName = course.Teacher?.Name,
-                Schedule = course.Schedule
-            };
-
-            return Ok(courseDto);
+            return Ok(course);
         }
-
 
         [HttpPut("{id}")]
         public IActionResult UpdateCourse(int id, [FromBody] UpdateCourseDto courseDto)
         {
-            if (courseDto == null)
+            try
             {
-                return BadRequest(new { message = "Invalid course data" });
+                var updatedCourse = _courseService.UpdateCourse(id, courseDto);
+                return Ok(updatedCourse);
             }
-
-            // Mevcut dersin olup olmadığını kontrol et
-            var existingCourse = _context.Courses.SingleOrDefault(c => c.CourseID == id);
-            if (existingCourse == null)
+            catch (Exception ex)
             {
-                return NotFound(new { message = "Course not found" });
+                return BadRequest(new { message = ex.Message });
             }
-
-            // Öğretmenin geçerli bir ID'ye sahip olduğunu kontrol et
-            var teacher = _context.Users.OfType<Teacher>().SingleOrDefault(t => t.UserID == courseDto.TeacherID);
-            if (teacher == null)
-            {
-                return BadRequest(new { message = "Invalid teacher ID" });
-            }
-
-            // Güncellenen verileri mevcut derse uygula
-            existingCourse.CourseName = courseDto.CourseName;
-            existingCourse.TeacherID = courseDto.TeacherID;
-            existingCourse.Schedule = courseDto.Schedule;
-
-            _context.SaveChanges();
-
-            return Ok(new
-            {
-                existingCourse.CourseID,
-                existingCourse.CourseName,
-                existingCourse.TeacherID,
-                TeacherName = teacher.Name, // Geri döndürmek için öğretmenin adını da ekleyelim
-                existingCourse.Schedule
-            });
         }
-
-
-
 
         [HttpDelete("{id}")]
         public IActionResult DeleteCourse(int id)
         {
-            var course = _context.Courses.Find(id);
-            if (course == null)
+            try
             {
-                return NotFound(new { message = "Course not found" });
+                _courseService.DeleteCourse(id);
+                return NoContent();
             }
-
-            _context.Courses.Remove(course);
-            _context.SaveChanges();
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
     }
-
 }

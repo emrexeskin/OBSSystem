@@ -12,6 +12,8 @@ namespace OBSSystem.Core.Entities
         public string CourseName { get; set; }
         public int TeacherID { get; set; }
         public string Schedule { get; set; } // Example: "Mon 09:00-11:00"
+        public ICollection<Enrollment> Enrollments { get; set; }
+
 
         // Navigation Property
         public Teacher Teacher { get; set; }

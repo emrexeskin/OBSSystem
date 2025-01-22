@@ -15,6 +15,7 @@ namespace OBSSystem.Core.Entities
         public Department Department { get; set; } // Öğrencinin bölümü
         public ICollection<Grade> Grades { get; set; }
         public ICollection<Attendance> Attendances { get; set; }
+        public ICollection<Enrollment> Enrollments { get; set; }
     }
 
 

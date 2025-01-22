@@ -15,10 +15,25 @@ namespace OBSSystem.Infrastructure.Configurations
         public DbSet<Grade> Grades { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<Announcement> Announcements { get; set; }
+        public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<Department> Departments { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Enrollment - Student ilişkisinde cascade yerine restrict/no action kullanıyoruz
+            modelBuilder.Entity<Enrollment>()
+                .HasOne(e => e.Student)
+                .WithMany(s => s.Enrollments)
+                .HasForeignKey(e => e.StudentID)
+                .OnDelete(DeleteBehavior.Restrict); // Cascade yerine Restrict kullanıldı
+
+            // Enrollment - Course ilişkisinde cascade yerine restrict/no action kullanıyoruz
+            modelBuilder.Entity<Enrollment>()
+                .HasOne(e => e.Course)
+                .WithMany(c => c.Enrollments)
+                .HasForeignKey(e => e.CourseID)
+                .OnDelete(DeleteBehavior.Restrict); // Cascade yerine Restrict kullanıldı
 
             // User ve türetilmiş sınıflar (TPH - Table Per Hierarchy)
             modelBuilder.Entity<User>()

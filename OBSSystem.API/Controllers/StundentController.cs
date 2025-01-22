@@ -1,19 +1,65 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OBSSystem.Application.Services;
 
 namespace OBSSystem.API.Controllers
 {
-    [Authorize(Roles = "Student")] // Sadece Student rolüne izin veriyoruz
+    [Authorize(Roles = "Student")]
     [Route("api/[controller]")]
     [ApiController]
     public class StudentController : ControllerBase
     {
-        [HttpGet("view-grades")]
-        public IActionResult ViewGrades()
+        private readonly GradeService _gradeService;
+        private readonly AttendanceService _attendanceService;
+
+        public StudentController(GradeService gradeService, AttendanceService attendanceService)
         {
-            return Ok(new { message = "Student can view grades!" });
+            _gradeService = gradeService;
+            _attendanceService = attendanceService;
         }
 
+        [HttpGet("grades")]
+        public IActionResult GetGrades()
+        {
+            try
+            {
+                var studentIdClaim = User.FindFirst("studentId")?.Value;
+                if (string.IsNullOrEmpty(studentIdClaim))
+                {
+                    return Unauthorized("Student ID not found in the token");
+                }
 
+                var studentId = int.Parse(studentIdClaim);
+                var grades = _gradeService.GetGradesByStudent(studentId);
+
+                return Ok(grades);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("attendance")]
+        public IActionResult GetAttendance()
+        {
+            try
+            {
+                var studentIdClaim = User.FindFirst("studentId")?.Value;
+                if (string.IsNullOrEmpty(studentIdClaim))
+                {
+                    return Unauthorized("Student ID not found in the token");
+                }
+
+                var studentId = int.Parse(studentIdClaim);
+                var attendance = _attendanceService.GetAttendanceByStudent(studentId);
+
+                return Ok(attendance);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

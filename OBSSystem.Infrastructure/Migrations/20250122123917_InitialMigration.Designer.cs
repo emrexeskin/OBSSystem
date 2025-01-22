@@ -12,7 +12,7 @@ using OBSSystem.Infrastructure.Configurations;
 namespace OBSSystem.Infrastructure.Migrations
 {
     [DbContext(typeof(OBSContext))]
-    [Migration("20250120143831_InitialMigration")]
+    [Migration("20250122123917_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -33,15 +33,22 @@ namespace OBSSystem.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AnnouncementID"));
 
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Message")
+                    b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("CourseID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReceiverType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SenderID")
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -126,6 +133,29 @@ namespace OBSSystem.Infrastructure.Migrations
                     b.HasKey("DepartmentID");
 
                     b.ToTable("Departments");
+                });
+
+            modelBuilder.Entity("OBSSystem.Core.Entities.Enrollment", b =>
+                {
+                    b.Property<int>("EnrollmentID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EnrollmentID"));
+
+                    b.Property<int>("CourseID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StudentID")
+                        .HasColumnType("int");
+
+                    b.HasKey("EnrollmentID");
+
+                    b.HasIndex("CourseID");
+
+                    b.HasIndex("StudentID");
+
+                    b.ToTable("Enrollments");
                 });
 
             modelBuilder.Entity("OBSSystem.Core.Entities.Grade", b =>
@@ -218,7 +248,6 @@ namespace OBSSystem.Infrastructure.Migrations
                     b.HasBaseType("OBSSystem.Core.Entities.User");
 
                     b.Property<string>("Department")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasDiscriminator().HasValue("Teacher");
@@ -254,6 +283,25 @@ namespace OBSSystem.Infrastructure.Migrations
                     b.Navigation("Teacher");
                 });
 
+            modelBuilder.Entity("OBSSystem.Core.Entities.Enrollment", b =>
+                {
+                    b.HasOne("OBSSystem.Core.Entities.Course", "Course")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("CourseID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("OBSSystem.Core.Entities.Student", "Student")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("StudentID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Student");
+                });
+
             modelBuilder.Entity("OBSSystem.Core.Entities.Grade", b =>
                 {
                     b.HasOne("OBSSystem.Core.Entities.Course", "Course")
@@ -284,6 +332,11 @@ namespace OBSSystem.Infrastructure.Migrations
                     b.Navigation("Department");
                 });
 
+            modelBuilder.Entity("OBSSystem.Core.Entities.Course", b =>
+                {
+                    b.Navigation("Enrollments");
+                });
+
             modelBuilder.Entity("OBSSystem.Core.Entities.Department", b =>
                 {
                     b.Navigation("Students");
@@ -292,6 +345,8 @@ namespace OBSSystem.Infrastructure.Migrations
             modelBuilder.Entity("OBSSystem.Core.Entities.Student", b =>
                 {
                     b.Navigation("Attendances");
+
+                    b.Navigation("Enrollments");
 
                     b.Navigation("Grades");
                 });

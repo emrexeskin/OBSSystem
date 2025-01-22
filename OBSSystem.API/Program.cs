@@ -49,9 +49,13 @@ builder.Services.AddControllers()
 // Add OpenAPI (Swagger)
 builder.Services.AddOpenApi();
 
-builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+builder.Services.AddScoped<EnrollmentService>();
+builder.Services.AddScoped<CourseService>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<AuthService>();
 
 var app = builder.Build();
 
