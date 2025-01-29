@@ -17,6 +17,8 @@ namespace OBSSystem.Infrastructure.Configurations
         public DbSet<Announcement> Announcements { get; set; }
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<Department> Departments { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -80,12 +82,23 @@ namespace OBSSystem.Infrastructure.Configurations
                 .HasForeignKey(g => g.CourseID)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Grade>()
+                .Property(g => g.Score)
+                .IsRequired(); // Score alanını zorunlu hale getirme
+
             // Öğrenci-Bölüm İlişkisi
             modelBuilder.Entity<Student>()
                 .HasOne(s => s.Department)
                 .WithMany(d => d.Students)
                 .HasForeignKey(s => s.DepartmentID)
                 .OnDelete(DeleteBehavior.Restrict); // Bölüm silindiğinde öğrenciler etkilenmez
+
+
+            modelBuilder.Entity<RefreshToken>()
+    .HasOne(rt => rt.User)
+    .WithMany()
+    .HasForeignKey(rt => rt.UserId)
+    .OnDelete(DeleteBehavior.Cascade);
 
 
         }

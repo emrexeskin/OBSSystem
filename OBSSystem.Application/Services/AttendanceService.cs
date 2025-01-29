@@ -28,6 +28,20 @@ namespace OBSSystem.Application.Services
             _attendanceRepository.AddAttendance(attendance);
         }
 
+        public void UpdateAttendanceBulk(int courseId, IEnumerable<Attendance> attendances, int teacherId)
+        {
+            // Öğretmenin bu derse ait yetkisi kontrol ediliyor
+            var course = _courseRepository.GetCourseById(courseId);
+            if (course == null || course.TeacherID != teacherId)
+                throw new UnauthorizedAccessException("You are not authorized to update attendance for this course.");
+
+            foreach (var attendance in attendances)
+            {
+                _attendanceRepository.UpdateAttendance(attendance);
+            }
+        }
+
+
         // Öğrencinin tüm yoklamalarını getirme
         public IEnumerable<Attendance> GetAttendanceByStudent(int studentId)
         {

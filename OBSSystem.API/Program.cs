@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using OBSSystem.Infrastructure.Configurations;
 using OBSSystem.Infrastructure.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,48 +8,21 @@ using OBSSystem.Application.Interfaces;
 using OBSSystem.Application.Services;
 using OBSSystem.API.Middleware;
 using OBSSystem.Infrastructure.Repositories;
+using OBSSystem.Core.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// JWT Authentication Configuration
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
-        };
-    });
+//IOptions Kullanarak JWT Konfigürasyonunu Bağla
+builder.Services.Configure<JwtConfig>(builder.Configuration.GetSection("Jwt"));
 
-// Authorization Configuration
-builder.Services.AddAuthorization();
-
-// Add DbContext
+// **Veritabanı Bağlantısı**
 builder.Services.AddDbContext<OBSContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register PasswordHasher
-// Register PasswordHasher (Non-static class)
-builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>(); // BCrypt tabanl� �ifreleme servisi
-                                                                     
-
-// Add Controllers with JSON Options
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy = null;
-    });
-
-// Add OpenAPI (Swagger)
-builder.Services.AddOpenApi();
-
+// **Service Kayıtları (Scoped Bağımlılıklar)**
+builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 builder.Services.AddScoped<EnrollmentService>();
@@ -57,34 +30,59 @@ builder.Services.AddScoped<CourseService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AuthService>();
 
+// **JWT Authentication Yapılandırması**
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        var jwtConfig = builder.Configuration.GetSection("Jwt").Get<JwtConfig>();
+        if (jwtConfig == null)
+        {
+            throw new Exception("JWT yapılandırması bulunamadı. Lütfen 'appsettings.json' dosyasını kontrol edin.");
+        }
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtConfig.Issuer,
+            ValidAudience = jwtConfig.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig.Key))
+        };
+    });
+
+// **Yetkilendirme**
+builder.Services.AddAuthorization();
+
+// **Controller ve JSON Ayarları**
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+    });
+
+// **OpenAPI (Swagger) Entegrasyonu**
+builder.Services.AddEndpointsApiExplorer();
+
+// **Loglama**
+builder.Services.AddLogging();
+
 var app = builder.Build();
 
-// Apply Pending Migrations and Seed Data
+// **Veritabanı Migrate & Seed**
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<OBSContext>();
-    context.Database.Migrate(); // Ensure database is up-to-date
-    DbInitializer.Seed(context); // Seed initial data
+    context.Database.Migrate();
+    DbInitializer.Seed(context);
 }
 
-// Configure Middleware
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.UseMiddleware<ExceptionMiddleware>(); // Hata yönetimi middleware
+app.UseAuthentication(); // Kimlik doğrulama
+app.UseMiddleware<TokenBlacklistMiddleware>(); // Blacklist middleware
+app.UseAuthorization(); // Yetkilendirme middleware
+app.MapControllers(); // API rotalarını bağlama
 
-// Uncomment this if HTTPS is required
-// app.UseHttpsRedirection(); 
-
-// Authentication Middleware
-app.UseAuthentication();
-
-// Authorization Middleware
-app.UseAuthorization();
-
-// Map Controllers
-app.MapControllers();
-
-app.UseMiddleware<ExceptionMiddleware>();
-
+// **Uygulamayı Başlat**
 app.Run();

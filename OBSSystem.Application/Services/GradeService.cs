@@ -28,6 +28,30 @@ namespace OBSSystem.Application.Services
             _gradeRepository.AddGrade(grade);
         }
 
+        public double GetStudentGradeAverage(int studentId)
+        {
+            var grades = _gradeRepository.GetGradesByStudent(studentId);
+            if (!grades.Any())
+                throw new Exception("No grades found for this student.");
+
+            return grades.Average(g => g.Score);
+        }
+
+        public object GetCourseStatistics(int courseId)
+        {
+            var grades = _gradeRepository.GetGradesByCourse(courseId);
+
+            return new
+            {
+                Average = grades.Any() ? grades.Average(g => g.Score) : 0,
+                Highest = grades.Any() ? grades.Max(g => g.Score) : 0,
+                Lowest = grades.Any() ? grades.Min(g => g.Score) : 0,
+                Count = grades.Count()
+            };
+        }
+
+
+
         // Öğrencinin tüm notlarını getirme
         public IEnumerable<Grade> GetGradesByStudent(int studentId)
         {

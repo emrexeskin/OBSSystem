@@ -11,7 +11,7 @@ namespace OBSSystem.Core.Entities
         public int GradeID { get; set; }
         public int StudentID { get; set; }
         public int CourseID { get; set; }
-        public double GradeValue { get; set; }
+        public double Score { get; set; }
 
         // Navigation Properties
         public Student Student { get; set; }

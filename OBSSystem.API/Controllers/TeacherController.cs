@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OBSSystem.Application.Services;
 using OBSSystem.Core.Entities;
@@ -70,5 +71,40 @@ namespace OBSSystem.API.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+
+        [HttpGet("courses/{courseId}/statistics")]
+        public IActionResult GetCourseStatistics(int courseId)
+        {
+            try
+            {
+                var teacherId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var statistics = _gradeService.GetCourseStatistics(courseId);
+                return Ok(statistics);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("courses/{courseId}/attendance")]
+        public IActionResult UpdateAttendanceBulk(int courseId, [FromBody] IEnumerable<Attendance> attendances)
+        {
+            try
+            {
+                var teacherId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                _attendanceService.UpdateAttendanceBulk(courseId, attendances, teacherId);
+                return Ok(new { message = "Attendance updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+
+
+
     }
 }

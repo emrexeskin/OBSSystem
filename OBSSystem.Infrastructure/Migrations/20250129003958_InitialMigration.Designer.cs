@@ -12,7 +12,7 @@ using OBSSystem.Infrastructure.Configurations;
 namespace OBSSystem.Infrastructure.Migrations
 {
     [DbContext(typeof(OBSContext))]
-    [Migration("20250122123917_InitialMigration")]
+    [Migration("20250129003958_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -169,7 +169,7 @@ namespace OBSSystem.Infrastructure.Migrations
                     b.Property<int>("CourseID")
                         .HasColumnType("int");
 
-                    b.Property<double>("GradeValue")
+                    b.Property<double>("Score")
                         .HasColumnType("float");
 
                     b.Property<int>("StudentID")
@@ -182,6 +182,37 @@ namespace OBSSystem.Infrastructure.Migrations
                     b.HasIndex("StudentID");
 
                     b.ToTable("Grades");
+                });
+
+            modelBuilder.Entity("OBSSystem.Core.Entities.RefreshToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("OBSSystem.Core.Entities.User", b =>
@@ -319,6 +350,17 @@ namespace OBSSystem.Infrastructure.Migrations
                     b.Navigation("Course");
 
                     b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("OBSSystem.Core.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("OBSSystem.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("OBSSystem.Core.Entities.Student", b =>

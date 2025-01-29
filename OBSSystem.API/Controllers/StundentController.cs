@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OBSSystem.Application.Services;
 
@@ -61,5 +62,22 @@ namespace OBSSystem.API.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+
+        [HttpGet("grades/average")]
+        public IActionResult GetStudentGradeAverage()
+        {
+            try
+            {
+                var studentId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var average = _gradeService.GetStudentGradeAverage(studentId);
+                return Ok(new { average });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
     }
 }
