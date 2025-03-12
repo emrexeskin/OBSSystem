@@ -8,6 +8,7 @@ using OBSSystem.Core.Configuration;
 using OBSSystem.Core.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 
 namespace OBSSystem.Application.Services
 {
@@ -26,13 +27,12 @@ namespace OBSSystem.Application.Services
             IPasswordHasher passwordHasher,
             IRefreshTokenRepository refreshTokenRepository,
             IOptionsSnapshot<JwtConfig> jwtConfig)
-          
         {
             _logger = logger;
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
             _refreshTokenRepository = refreshTokenRepository ?? throw new ArgumentNullException(nameof(refreshTokenRepository));
-            _jwtConfig = jwtConfig.Value ?? throw new ArgumentNullException(nameof(jwtConfig));  // Options üzerinden al
+            _jwtConfig = jwtConfig.Value ?? throw new ArgumentNullException(nameof(jwtConfig));
 
             _logger.LogInformation("AuthService başarıyla oluşturuldu.");
         }
@@ -53,14 +53,13 @@ namespace OBSSystem.Application.Services
 
         public string GenerateAccessToken(int userId)
         {
-            
             var user = _userRepository.GetUserById(userId);
             if (user == null) throw new UnauthorizedAccessException("Invalid user.");
 
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
-                new Claim(ClaimTypes.Role, user.Role)
+                new Claim(ClaimTypes.Role, user.Role ?? "User")
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtConfig.Key));
@@ -74,12 +73,10 @@ namespace OBSSystem.Application.Services
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-          
         }
 
         public string GenerateRefreshToken(int userId)
         {
-            
             var refreshToken = new RefreshToken
             {
                 Token = Guid.NewGuid().ToString(),
@@ -93,8 +90,6 @@ namespace OBSSystem.Application.Services
             _refreshTokenRepository.SaveChanges();
 
             return refreshToken.Token;
-
-          
         }
 
         public bool ValidateRefreshToken(string refreshToken, int userId)
@@ -108,7 +103,7 @@ namespace OBSSystem.Application.Services
 
             return true;
         }
-       
+
         public void RevokeRefreshToken(string refreshToken)
         {
             var tokenRecord = _refreshTokenRepository.GetByToken(refreshToken);

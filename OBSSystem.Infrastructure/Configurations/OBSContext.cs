@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OBSSystem.Core.Entities;
-
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace OBSSystem.Infrastructure.Configurations
 {
     public class OBSContext : DbContext
@@ -18,10 +18,34 @@ namespace OBSSystem.Infrastructure.Configurations
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<Department> Departments { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<ActivityLog> ActivityLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            
+            modelBuilder.Entity<User>()
+                .HasDiscriminator<string>("Role")  // Discriminator olarak "Role" string türü
+                .HasValue<User>("User")  // "User" olarak tanımlanır
+                .HasValue<Student>("Student") // "Student" olarak tanımlanır
+                .HasValue<Teacher>("Teacher") // "Teacher" olarak tanımlanır
+                .HasValue<Admin>("Admin"); // "Admin" olarak tanımlanır
+            
+            // Role özelliği için enum'ı string'e dönüştür
+            modelBuilder.Entity<User>()
+                .Property(u => u.Role)
+                .IsRequired()
+                .HasMaxLength(10);
+            
+            // Primary Key Tanımları
+            modelBuilder.Entity<User>().HasKey(u => u.UserID);
+
+            // Teacher-Course İlişkisi
+            modelBuilder.Entity<Course>()
+                .HasOne(c => c.Teacher)
+                .WithMany(t => t.Courses)
+                .HasForeignKey(c => c.TeacherID)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Enrollment - Student ilişkisinde cascade yerine restrict/no action kullanıyoruz
             modelBuilder.Entity<Enrollment>()
@@ -36,25 +60,6 @@ namespace OBSSystem.Infrastructure.Configurations
                 .WithMany(c => c.Enrollments)
                 .HasForeignKey(e => e.CourseID)
                 .OnDelete(DeleteBehavior.Restrict); // Cascade yerine Restrict kullanıldı
-
-            // User ve türetilmiş sınıflar (TPH - Table Per Hierarchy)
-            modelBuilder.Entity<User>()
-       .HasDiscriminator<string>("Role")
-       .HasValue<User>("User")
-       .HasValue<Student>("Student")
-       .HasValue<Teacher>("Teacher")
-       .HasValue<Admin>("Admin");
-
-
-            // Primary Key Tanımları
-            modelBuilder.Entity<User>().HasKey(u => u.UserID);
-
-            // Teacher-Course İlişkisi
-            modelBuilder.Entity<Course>()
-                .HasOne(c => c.Teacher)
-                .WithMany(t => t.Courses)
-                .HasForeignKey(c => c.TeacherID)
-                .OnDelete(DeleteBehavior.Cascade); // Bu kalsın
 
             // Attendance İlişkileri (Cascade Delete Kaldırıldı)
             modelBuilder.Entity<Attendance>()
@@ -93,15 +98,17 @@ namespace OBSSystem.Infrastructure.Configurations
                 .HasForeignKey(s => s.DepartmentID)
                 .OnDelete(DeleteBehavior.Restrict); // Bölüm silindiğinde öğrenciler etkilenmez
 
+            modelBuilder.Entity<Teacher>()
+                .HasMany(t => t.Courses)
+                .WithOne(c => c.Teacher)
+                .HasForeignKey(c => c.TeacherID)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<RefreshToken>()
-    .HasOne(rt => rt.User)
-    .WithMany()
-    .HasForeignKey(rt => rt.UserId)
-    .OnDelete(DeleteBehavior.Cascade);
-
-
+                .HasOne(rt => rt.User)
+                .WithMany()
+                .HasForeignKey(rt => rt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
-
     }
 }

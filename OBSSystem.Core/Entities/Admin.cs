@@ -11,4 +11,3 @@ namespace OBSSystem.Core.Entities
         public int AdminID { get; set; }
     }
 }
-

@@ -1,6 +1,7 @@
 ﻿using OBSSystem.Application.Interfaces;
 using OBSSystem.Core.Entities;
 using OBSSystem.Infrastructure.Configurations;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -21,14 +22,20 @@ namespace OBSSystem.Infrastructure.Repositories
             _context.SaveChanges();
         }
 
+        // Kursları çekerken Teacher bilgilerini dahil ediyoruz
         public IEnumerable<Course> GetAllCourses()
         {
-            return _context.Courses.ToList();
+            return _context.Courses
+                .Include(c => c.Teacher) // Teacher'ı dahil ediyoruz
+                .ToList();
+            
         }
 
         public Course GetCourseById(int id)
         {
-            return _context.Courses.SingleOrDefault(c => c.CourseID == id);
+            return _context.Courses
+                .Include(c => c.Teacher) // Teacher bilgilerini dahil ediyoruz
+                .SingleOrDefault(c => c.CourseID == id);
         }
 
         public void UpdateCourse(Course course)

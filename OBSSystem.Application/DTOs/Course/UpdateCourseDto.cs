@@ -9,7 +9,7 @@ namespace OBSSystem.Application.DTOs.Course
     public class UpdateCourseDto
     {
         public string CourseName { get; set; }
-        public int TeacherID { get; set; }
+        public int? TeacherID { get; set; }
         public string Schedule { get; set; }
     }
 

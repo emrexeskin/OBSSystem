@@ -9,8 +9,29 @@ using OBSSystem.Application.Services;
 using OBSSystem.API.Middleware;
 using OBSSystem.Infrastructure.Repositories;
 using OBSSystem.Core.Configuration;
+using OBSSystem.Infrastructure.Configurations.OBSSystem.Infrastructure.Configurations;
+
 
 var builder = WebApplication.CreateBuilder(args);
+var corsPolicy = "_obsCorsPolicy";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(corsPolicy,
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000") // Frontend URL
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
+});
+
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+    options.JsonSerializerOptions.WriteIndented = true;
+    
+    
+});
 
 //IOptions Kullanarak JWT Konfigürasyonunu Bağla
 builder.Services.Configure<JwtConfig>(builder.Configuration.GetSection("Jwt"));
@@ -29,7 +50,8 @@ builder.Services.AddScoped<EnrollmentService>();
 builder.Services.AddScoped<CourseService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AuthService>();
-
+builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
+builder.Services.AddScoped<ActivityLogService>();
 // **JWT Authentication Yapılandırması**
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -62,6 +84,8 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = null;
     });
 
+
+
 // **OpenAPI (Swagger) Entegrasyonu**
 builder.Services.AddEndpointsApiExplorer();
 
@@ -70,7 +94,6 @@ builder.Services.AddLogging();
 
 var app = builder.Build();
 
-// **Veritabanı Migrate & Seed**
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<OBSContext>();
@@ -83,6 +106,7 @@ app.UseAuthentication(); // Kimlik doğrulama
 app.UseMiddleware<TokenBlacklistMiddleware>(); // Blacklist middleware
 app.UseAuthorization(); // Yetkilendirme middleware
 app.MapControllers(); // API rotalarını bağlama
+app.UseCors(corsPolicy);
 
 // **Uygulamayı Başlat**
 app.Run();

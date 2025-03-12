@@ -22,6 +22,39 @@ namespace OBSSystem.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("OBSSystem.Core.Entities.ActivityLog", b =>
+                {
+                    b.Property<int>("ActivityLogID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ActivityLogID"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ActivityLogID");
+
+                    b.HasIndex("UserID");
+
+                    b.ToTable("ActivityLogs");
+                });
+
             modelBuilder.Entity("OBSSystem.Core.Entities.Announcement", b =>
                 {
                     b.Property<int>("AnnouncementID")
@@ -101,7 +134,7 @@ namespace OBSSystem.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("TeacherID")
+                    b.Property<int?>("TeacherID")
                         .HasColumnType("int");
 
                     b.HasKey("CourseID");
@@ -234,8 +267,8 @@ namespace OBSSystem.Infrastructure.Migrations
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)");
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.HasKey("UserID");
 
@@ -281,6 +314,17 @@ namespace OBSSystem.Infrastructure.Migrations
                     b.HasDiscriminator().HasValue("Teacher");
                 });
 
+            modelBuilder.Entity("OBSSystem.Core.Entities.ActivityLog", b =>
+                {
+                    b.HasOne("OBSSystem.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("OBSSystem.Core.Entities.Attendance", b =>
                 {
                     b.HasOne("OBSSystem.Core.Entities.Course", "Course")
@@ -305,8 +349,7 @@ namespace OBSSystem.Infrastructure.Migrations
                     b.HasOne("OBSSystem.Core.Entities.Teacher", "Teacher")
                         .WithMany("Courses")
                         .HasForeignKey("TeacherID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Teacher");
                 });

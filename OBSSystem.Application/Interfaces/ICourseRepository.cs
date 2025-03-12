@@ -10,5 +10,7 @@ namespace OBSSystem.Application.Interfaces
         Course GetCourseById(int id);
         void UpdateCourse(Course course);
         void DeleteCourse(Course course);
+        
+        
     }
 }

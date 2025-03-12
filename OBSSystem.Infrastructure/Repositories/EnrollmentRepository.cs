@@ -17,6 +17,14 @@ namespace OBSSystem.Infrastructure.Repositories
 
         public void AddEnrollment(Enrollment enrollment)
         {
+            bool exists = _context.Enrollments
+                .Any(e => e.StudentID == enrollment.StudentID && e.CourseID == enrollment.CourseID);
+
+            if (exists)
+            {
+                throw new InvalidOperationException("Student is already enrolled in this course.");
+            }
+
             _context.Enrollments.Add(enrollment);
             _context.SaveChanges();
         }
@@ -24,11 +32,13 @@ namespace OBSSystem.Infrastructure.Repositories
         public void RemoveEnrollment(int enrollmentId)
         {
             var enrollment = _context.Enrollments.Find(enrollmentId);
-            if (enrollment != null)
+            if (enrollment == null)
             {
-                _context.Enrollments.Remove(enrollment);
-                _context.SaveChanges();
+                throw new KeyNotFoundException("Enrollment not found.");
             }
+
+            _context.Enrollments.Remove(enrollment);
+            _context.SaveChanges();
         }
 
         public Enrollment GetEnrollment(int enrollmentId)
@@ -38,7 +48,16 @@ namespace OBSSystem.Infrastructure.Repositories
 
         public IEnumerable<Enrollment> GetEnrollmentsByStudent(int studentId)
         {
-            return _context.Enrollments.Where(e => e.StudentID == studentId).ToList();
+            return _context.Enrollments
+                .Where(e => e.StudentID == studentId)  // StudentID'yi UserID olarak alıyoruz
+                .ToList();
+        }
+
+        // Yeni metodun implementasyonu
+        public IEnumerable<Enrollment> GetAllEnrollments()
+        {
+            return _context.Enrollments.ToList(); // Tüm enrollments'ı getir
         }
     }
 }
+

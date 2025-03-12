@@ -9,5 +9,6 @@ namespace OBSSystem.Application.Interfaces
         void RemoveEnrollment(int enrollmentId);
         Enrollment GetEnrollment(int enrollmentId);
         IEnumerable<Enrollment> GetEnrollmentsByStudent(int studentId);
+        IEnumerable<Enrollment> GetAllEnrollments();
     }
 }
